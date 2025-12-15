@@ -72,6 +72,7 @@ jobs:
             api.github.com:443
             github.com:443
             objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
 
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -181,6 +182,7 @@ jobs:
           egress-policy: audit
           allowed-endpoints: >
             api.github.com:443
+            release-assets.githubusercontent.com:443
             archive.ubuntu.com:80
             atl.mirrors.knownhost.com:443
             atl.mirrors.knownhost.com:80
@@ -468,6 +470,7 @@ jobs:
           egress-policy: block
           allowed-endpoints: >
             api.github.com:443
+            release-assets.githubusercontent.com:443
             auth.docker.io:443
             git.zabbix.com:443
             github.com:443
@@ -733,6 +736,7 @@ jobs:
           egress-policy: block
           allowed-endpoints: >
             api.github.com:443
+            release-assets.githubusercontent.com:443
             apt.postgresql.org:80
             auth.docker.io:443
             dl-cdn.alpinelinux.org:443
