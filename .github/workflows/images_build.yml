@@ -480,6 +480,7 @@ jobs:
             golang.org:443
             google.golang.org:443
             golang.zabbix.com:443
+            sum.golang.org:443
             gopkg.in:443
             ghcr.io:443
             index.docker.io:443
