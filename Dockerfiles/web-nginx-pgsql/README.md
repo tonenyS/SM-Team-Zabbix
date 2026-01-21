@@ -268,13 +268,13 @@ WEB_REAL_IP_HEADER=
 
 ### ``/etc/ssl/nginx``
 
-The volume allows to enable HTTPS for the Zabbix web interface. The volume must contains three files ``ssl.crt``, ``ssl.key`` and ``dhparam.pem`` prepared for Nginx SSL connections.
+The volume allows to enable HTTPS for the Zabbix web interface. The volume must contain three files ``ssl.crt``, ``ssl.key`` and ``dhparam.pem`` prepared for Nginx SSL connections.
 
 Please follow official Nginx [documentation](http://nginx.org/en/docs/http/configuring_https_servers.html) to get more details about how to create certificate files.
 
 ### ``/etc/zabbix/web/certs``
 
-The volume allows to use custom certificates for SAML authentication. The volume must contains three files ``sp.key``, ``sp.crt`` and ``idp.crt``. Available since 5.0.0.
+The volume allows to use custom certificates for SAML authentication. The volume must contain three files ``sp.key``, ``sp.crt`` and ``idp.crt``. Available since 5.0.0.
 
 ### ``/var/lib/zabbix/enc``
 
