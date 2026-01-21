@@ -229,7 +229,7 @@ The volume is used as location of public and private keys for SSH checks and act
 
 ### ``/var/lib/zabbix/ssl/certs``
 
-The volume is used as location of of SSL client certificate files for client authentication. It is `SSLCertLocation` parameter in ``zabbix_proxy.conf``.
+The volume is used as location of SSL client certificate files for client authentication. It is `SSLCertLocation` parameter in ``zabbix_proxy.conf``.
 
 ### ``/var/lib/zabbix/ssl/keys``
 
