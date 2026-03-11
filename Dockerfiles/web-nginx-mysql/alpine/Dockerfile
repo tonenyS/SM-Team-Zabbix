@@ -57,6 +57,7 @@ RUN set -eux && \
             php84-xmlreader \
             php84-xmlwriter \
             php84-openssl \
+	    jq \
             supervisor" && \
     apk add \
             --no-cache \

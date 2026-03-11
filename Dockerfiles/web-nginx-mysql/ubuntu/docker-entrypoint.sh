@@ -134,6 +134,39 @@ db_tls_params() {
     echo $result
 }
 
+get_vault_secrets() {
+    WAIT_TIMEOUT=5
+
+    # For hashicorp
+    if [ ${ZBX_VAULT} == "HashiCorp" ]; then
+        while ! vaultdata=$(curl -s -m 10 -k -H "X-Vault-Token: $VAULT_TOKEN" -X GET $ZBX_VAULTURL$ZBX_VAULTPREFIX$ZBX_VAULTDBPATH) ; do
+            echo "**** Vault is not available. Waiting 5 seconds... ****"
+            sleep $WAIT_TIMEOUT
+        done
+        DB_SERVER_ZBX_USER=$(echo $vaultdata | jq -r '.data.data.username')
+        DB_SERVER_ZBX_PASS=$(echo $vaultdata | jq -r '.data.data.password')
+
+    # For Cyperark
+    elif [ ${ZBX_VAULT} == "CyberArk" ]; then
+        # if key is defined use if
+        if [ -n "${ZBX_VAULTKEYFILE}" ]; then
+            while ! vaultdata=$(curl -s -m 10 -k -H "Content-type: application/json" --cert $ZBX_VAULTCERTFILE --key $ZBX_VAULTKEYFILE -X GET $ZBX_VAULTURL$ZBX_VAULTPREFIX$ZBX_VAULTDBPATH) ; do
+                echo "**** Vault is not available. Waiting 5 seconds... ****"
+                sleep $WAIT_TIMEOUT
+            done
+        # if key is not defined it should be in the cert so skip it
+        else
+            while ! vaultdata=$(curl -s -m 10 -k -H "Content-type: application/json" --cert $ZBX_VAULTCERTFILE -X GET $ZBX_VAULTURL$ZBX_VAULTPREFIX$ZBX_VAULTDBPATH) ; do
+                echo "**** Vault is not available. Waiting 5 seconds... ****"
+                sleep $WAIT_TIMEOUT
+           done
+        fi
+        DB_SERVER_ZBX_USER=$(echo $vaultdata | jq -r '.UserName')
+        DB_SERVER_ZBX_PASS=$(echo $vaultdata | jq -r '.Content')
+
+    fi
+}
+
 check_db_connect() {
     echo "********************"
     echo "* DB_SERVER_HOST: ${DB_SERVER_HOST}"
@@ -149,6 +182,25 @@ check_db_connect() {
     echo "********************"
 
     WAIT_TIMEOUT=5
+
+    if [ -n "${ZBX_VAULTURL}" ]; then
+        unset DB_SERVER_ZBX_USER
+        unset DB_SERVER_ZBX_PASS
+
+        while :; do
+                echo "*************** Connecting to vault... ***************************************"
+                get_vault_secrets
+                echo "*************** VAULT URL: $ZBX_VAULTURL"
+                if [ -n $DB_SERVER_ZBX_USER ] && [  $DB_SERVER_ZBX_USER != "null" ]; then
+                        break
+                fi
+                echo "**** Failed to get DB credentials from vault. Waiting 5 seconds... ****"
+
+                sleep $WAIT_TIMEOUT
+
+        done
+
+    fi
 
     ssl_opts="$(db_tls_params)"
 

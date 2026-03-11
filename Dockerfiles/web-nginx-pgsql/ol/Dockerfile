@@ -53,6 +53,7 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
             php-pgsql \
             php-xml \
             postgresql \
+	    jq \
             supervisor" && \
     microdnf -y install \
             --disablerepo="*" \

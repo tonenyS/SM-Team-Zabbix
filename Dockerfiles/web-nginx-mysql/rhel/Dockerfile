@@ -73,6 +73,7 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
             php-ldap \
             php-mbstring \
             php-mysqlnd \
+	    jq \
             php-xml" && \
     curl --tlsv1.2 -sSf -L https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm -o /tmp/epel-release-latest-10.noarch.rpm && \
     rpm -ivh /tmp/epel-release-latest-10.noarch.rpm && \

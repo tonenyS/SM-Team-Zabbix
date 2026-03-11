@@ -55,6 +55,7 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
             glibc-locale-source \
             shadow-utils \
             gzip \
+            jq \
             supervisor" && \
     microdnf -y install \
         --disablerepo "*" \
