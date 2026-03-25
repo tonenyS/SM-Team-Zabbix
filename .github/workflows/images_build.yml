@@ -393,7 +393,7 @@ jobs:
 
       - name: Scan for vulnerabilities
         if: ${{ matrix.os != 'centos' }}
-        uses: crazy-max/ghaction-container-scan@v3
+        uses: crazy-max/ghaction-container-scan@v4
         with:
           image: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           annotations: true
