@@ -64,7 +64,7 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
             php-json \
             php-xml \
             postgresql \
-	          jq \
+            jq \
             findutils \
             glibc-locale-source \
             supervisor" && \

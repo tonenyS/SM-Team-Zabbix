@@ -66,7 +66,7 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
             php-xml \
             shadow-utils \
             gzip \
-	    jq \
+            jq \
             supervisor" && \
     microdnf -y install \
             --disablerepo="*" \
