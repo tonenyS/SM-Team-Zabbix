@@ -38,6 +38,7 @@ jobs:
           disable-sudo: true
           egress-policy: block
           allowed-endpoints: >
+            github.com:443
             api.github.com:443
             api.scorecard.dev:443
             rekor.sigstore.dev:443
