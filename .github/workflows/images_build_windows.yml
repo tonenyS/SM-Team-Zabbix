@@ -254,13 +254,13 @@ jobs:
 
           echo "::group::Build Image"
           Write-Host @"
-  docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
+          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
                --label org.opencontainers.image.created=$Env:LABEL_CREATED
                --build-arg=OS_BASE_IMAGE=$baseOsImage
                --file=$dockerfile
                $tagArgs
-          $context
-  "@
+            $context
+          "@
 
           docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
                        --label org.opencontainers.image.created=$Env:LABEL_CREATED `
@@ -494,13 +494,13 @@ jobs:
 
           echo "::group::Build Image"
           Write-Host @"
-docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
+          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
              --label org.opencontainers.image.created=$Env:LABEL_CREATED
              --build-arg=BUILD_BASE_IMAGE=$baseBuildImage
              --file=$dockerfile
              $tagArgs
-        $context
-"@
+            $context
+          "@
 
           docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
                        --label org.opencontainers.image.created=$Env:LABEL_CREATED `
@@ -747,14 +747,14 @@ docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
 
           echo "::group::Build Image"
           Write-Host @"
-docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
+          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
              --label org.opencontainers.image.created=$Env:LABEL_CREATED
              --build-arg=BUILD_BASE_IMAGE=$baseBuildImage
              --build-arg=OS_BASE_IMAGE=$baseImage
              --file=$dockerfile
              $tagArgs
-        $context
-"@
+            $context
+          "@
 
           docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
                        --label org.opencontainers.image.created=$Env:LABEL_CREATED `
