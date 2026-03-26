@@ -56,6 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: bash
     outputs:
       os: ${{ steps.os.outputs.list }}
       components: ${{ steps.components.outputs.list }}
