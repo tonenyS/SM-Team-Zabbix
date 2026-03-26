@@ -205,7 +205,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
-          images: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, env.BASE_BUILD_NAME ) }}
+          images: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, env.BASE_IMAGE_NAME ) }}
           context: ${{ env.TRUNK_ONLY_EVENT == 'true' && 'git' || '' }}
           tags: |
             type=semver,enable=${{ needs.init_build.outputs.current_branch != 'trunk' }},pattern={{version}},prefix=${{ matrix.component }}-${{ steps.base_os_tag.outputs.os_tag }}-
@@ -258,7 +258,7 @@ jobs:
 
           echo "::group::Build Image"
           Write-Host @"
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
+          docker buildx build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
                --label org.opencontainers.image.created=$Env:LABEL_CREATED
                --build-arg=OS_BASE_IMAGE=$baseOsImage
                --file=$dockerfile
@@ -268,7 +268,7 @@ jobs:
             $context
           "@
 
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
+          docker buildx build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
                        --label org.opencontainers.image.created=$Env:LABEL_CREATED `
                        --build-arg=OS_BASE_IMAGE=$baseOsImage `
                        --file=$dockerfile `
