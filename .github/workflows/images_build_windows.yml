@@ -258,23 +258,18 @@ jobs:
 
           echo "::group::Build Image"
           Write-Host @"
-          docker buildx build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
+          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
                --label org.opencontainers.image.created=$Env:LABEL_CREATED
                --build-arg=OS_BASE_IMAGE=$baseOsImage
                --file=$dockerfile
-               --provenance=mode=max,version=v1
-               --sbom
                $tagArgs
             $context
           "@
 
-          docker buildx --help
-          docker buildx build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
+          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
                        --label org.opencontainers.image.created=$Env:LABEL_CREATED `
                        --build-arg=OS_BASE_IMAGE=$baseOsImage `
                        --file=$dockerfile `
-                       --provenance=mode=max,version=v1 `
-                       --sbom `
                        $tagArgs `
                        $context
           if (-not $?) { throw "Failed to build image" }
