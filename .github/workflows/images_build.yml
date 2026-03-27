@@ -70,6 +70,7 @@ jobs:
         with:
           disable-sudo: true
           egress-policy: block
+          disable-telemetry: true
           allowed-endpoints: >
             api.github.com:443
             github.com:443
@@ -186,7 +187,8 @@ jobs:
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
           disable-sudo: true
-          egress-policy: block
+          egress-policy: audit
+          disable-telemetry: true
           allowed-endpoints: >
             api.github.com:443
             archive.ubuntu.com:80
@@ -228,6 +230,7 @@ jobs:
             mirror.facebook.net:80
             mirror.facebook.net:443
             mirror.fcix.net:443
+            mirror.gcr.io:443
             mirror.hoobly.com:443
             mirror.math.princeton.edu:443
             mirror.netzwerge.de:443
@@ -431,6 +434,7 @@ jobs:
         with:
           disable-sudo: true
           egress-policy: block
+          disable-telemetry: true
           allowed-endpoints: >
             api.github.com:443
             auth.docker.io:443
@@ -446,6 +450,7 @@ jobs:
             gopkg.in:443
             index.docker.io:443
             noto-website-2.storage.googleapis.com:443
+            mirror.gcr.io:443
             oauth2.sigstore.dev:443
             objects.githubusercontent.com:443
             pkg-containers.githubusercontent.com:443
@@ -653,7 +658,8 @@ jobs:
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
           disable-sudo: true
-          egress-policy: block
+          egress-policy: audit
+          disable-telemetry: true
           allowed-endpoints: >
             api.github.com:443
             apt.postgresql.org:80
@@ -694,6 +700,7 @@ jobs:
             mirror.de.leaseweb.net:80
             mirror.dogado.de:80
             mirror.facebook.net:80
+            mirror.gcr.io:443
             mirror.hoobly.com:80
             mirror.math.princeton.edu:80
             mirror.netcologne.de:443
