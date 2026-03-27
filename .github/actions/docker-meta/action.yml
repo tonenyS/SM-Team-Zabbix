@@ -4,22 +4,22 @@ description: Generate Docker tags and labels consistently
 inputs:
   image:
     required: true
-    description: Full image name, e.g. docker.io/org/prefix-image
+    description: 'Full image name, e.g. docker.io/org/prefix-image'
   os:
     required: true
-    description: OS suffix/prefix for tags
+    description: 'OS suffix/prefix for tags'
   current_branch:
     required: true
-    description: Current branch name
+    description: 'Current branch name'
   is_default_branch:
     required: true
-    description: 'true' or 'false'
+    description: '"true" or "false"'
   trunk_only_event:
     required: true
-    description: 'true' or 'false'
+    description: '"true" or false"'
   event_name:
     required: true
-    description: GitHub event name
+    description: 'GitHub event name'
 
 outputs:
   tags:
