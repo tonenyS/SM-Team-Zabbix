@@ -198,6 +198,7 @@ jobs:
             cdn03.quay.io:443
             centos-stream-distro.1gservers.com:80
             centos-stream-distro.1gservers.com:443
+            container-registry.oracle.com:443
             dfw.mirror.rackspace.com:80
             dfw.mirror.rackspace.com:443
             dl-cdn.alpinelinux.org:443
@@ -665,6 +666,7 @@ jobs:
             cdn03.quay.io:443
             centos-stream-distro.1gservers.com:80
             centos-stream-distro.1gservers.com:443
+            container-registry.oracle.com:443
             d2lzkl7pfhq30w.cloudfront.net:443
             deb.debian.org:80
             dl-cdn.alpinelinux.org:443
