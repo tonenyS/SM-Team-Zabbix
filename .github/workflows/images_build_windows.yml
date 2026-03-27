@@ -48,7 +48,7 @@ env:
   DOCKERFILES_DIRECTORY: "Dockerfiles"
 
   OIDC_ISSUER: "https://token.actions.githubusercontent.com"
-  IDENITY_REGEX: "https://github.com/zabbix/zabbix-docker/.github/"
+  IDENTITY_REGEX: "${{ github.server_url }}/${{ github.repository }}/.github/"
 
 jobs:
   init_build:
@@ -82,7 +82,7 @@ jobs:
           fetch-depth: 1
           sparse-checkout: ${{ env.MATRIX_FILE }}
 
-      - name: Check ${{ env.MATRIX_FILE }} file
+      - name: Check matrix file
         env:
           MATRIX_FILE: ${{ env.MATRIX_FILE }}
         run: |
@@ -461,11 +461,11 @@ jobs:
         env:
           BASE_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
           OIDC_ISSUER: ${{ env.OIDC_ISSUER }}
-          IDENITY_REGEX: ${{ env.IDENITY_REGEX }}
+          IDENTITY_REGEX: ${{ env.IDENTITY_REGEX }}
         run: |
           cosign verify `
             --certificate-oidc-issuer-regexp "$Env:OIDC_ISSUER" `
-            --certificate-identity-regexp "$Env:IDENITY_REGEX" `
+            --certificate-identity-regexp "$Env:IDENTITY_REGEX" `
             "$Env:BASE_IMAGE" | jq
 
       - name: Build and push image
@@ -713,11 +713,11 @@ jobs:
         env:
           BASE_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
           OIDC_ISSUER: ${{ env.OIDC_ISSUER }}
-          IDENITY_REGEX: ${{ env.IDENITY_REGEX }}
+          IDENTITY_REGEX: ${{ env.IDENTITY_REGEX }}
         run: |
           cosign verify `
             --certificate-oidc-issuer-regexp "$Env:OIDC_ISSUER" `
-            --certificate-identity-regexp "$Env:IDENITY_REGEX" `
+            --certificate-identity-regexp "$Env:IDENTITY_REGEX" `
             "$Env:BASE_IMAGE" | jq
 
       - name: Build and optionally push image
