@@ -778,6 +778,7 @@ jobs:
 
       - name: Detect build base image
         id: build_base_image
+        if: ${{ matrix.build != 'snmptraps' }}
         env:
           MATRIX_BUILD: ${{ matrix.build }}
           MATRIX_FILE: ${{ env.MATRIX_FILE }}
