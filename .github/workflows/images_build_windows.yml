@@ -221,112 +221,30 @@ jobs:
 
       - name: Build and push image
         id: docker_build
-        env:
-          DOCKERFILES_DIRECTORY: ${{ env.DOCKERFILES_DIRECTORY }}
-          BASE_BUILD_IMAGE: ${{ env.MSFT_BASE_BUILD_IMAGE }}
-          BASE_IMAGE_NAME: ${{ env.BASE_IMAGE_NAME }}
-          MATRIX_COMPONENT: ${{ matrix.component }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-          BASE_OS_TAG: ${{ steps.base_os_tag.outputs.os_tag }}
-          LABEL_REVISION: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
-          LABEL_CREATED: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-        run: |
-          echo "::group::Docker version"
-          docker version
-          echo "::endgroup::"
-
-          echo "::group::Docker info"
-          docker info
-          echo "::endgroup::"
-
-          $context = "$Env:DOCKERFILES_DIRECTORY\$Env:BASE_IMAGE_NAME\windows\"
-          $dockerfile = "$context" + "Dockerfile." + "$Env:MATRIX_COMPONENT"
-          $baseOsImage = "$Env:BASE_BUILD_IMAGE" + ":" + "$Env:BASE_OS_TAG"
-
-          Remove-Item -ErrorAction Ignore -Force -Path "$context\README.md"
-
-          $tagsArray = $Env:TAGS.Split("`n", [System.StringSplitOptions]::RemoveEmptyEntries)
-          $tagArgs = $tagsArray | ForEach-Object { "--tag=$_" }
-
-          echo "::group::Image tags"
-          echo "$Env:TAGS"
-          echo "::endgroup::"
-
-          echo "::group::Pull base image"
-          docker pull $baseOsImage
-          if (-not $?) { throw "Failed to pull $baseOsImage" }
-          echo "::endgroup::"
-
-          echo "::group::Build Image"
-          Write-Host @"
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
-               --label org.opencontainers.image.created=$Env:LABEL_CREATED
-               --build-arg=OS_BASE_IMAGE=$baseOsImage
-               --file=$dockerfile
-               $tagArgs
-            $context
-          "@
-
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
-                       --label org.opencontainers.image.created=$Env:LABEL_CREATED `
-                       --build-arg=OS_BASE_IMAGE=$baseOsImage `
-                       --file=$dockerfile `
-                       $tagArgs `
-                       $context
-          if (-not $?) { throw "Failed to build image" }
-          echo "::endgroup::"
-
-          echo "::group::Publish Image"
-          foreach ($tag in $tagsArray) {
-            echo "docker image push $tag"
-            docker image push $tag
-            if (-not $?) { throw "Failed to push $tag" }
-          }
-
-          $repoDigest = docker inspect $tagsArray[0] --format "{{ index .RepoDigests 0}}"
-          if (-not $?) { throw "Failed to inspect RepoDigests for $($tagsArray[0])" }
-
-          $digest = $repoDigest.Split('@')[-1]
-          if ([string]::IsNullOrWhiteSpace($digest)) {
-            throw "Image digest is empty"
-          }
-          echo "Image digest got from RepoDigests"
-          echo "::endgroup::"
-
-          echo "::group::Digest"
-          echo "$digest"
-          echo "::endgroup::"
-
-          echo "digest=$digest" >> $Env:GITHUB_OUTPUT
+        uses: ./.github/actions/docker-build-push-windows
+        with:
+          context: ${{ env.DOCKERFILES_DIRECTORY }}\${{ env.BASE_IMAGE_NAME }}\windows
+          dockerfile: ${{ env.DOCKERFILES_DIRECTORY }}\${{ env.BASE_IMAGE_NAME }}\windows\Dockerfile.${{ matrix.component }}
+          tags: ${{ steps.meta.outputs.tags }}
+          label_revision: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+          label_created: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          pull_images: |
+            ${{ env.MSFT_BASE_BUILD_IMAGE }}:${{ steps.base_os_tag.outputs.os_tag }}
+          build_args: |
+            OS_BASE_IMAGE=${{ env.MSFT_BASE_BUILD_IMAGE }}:${{ steps.base_os_tag.outputs.os_tag }}
+          push: true
 
       - name: Sign the images with GitHub OIDC Token
-        env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          $tagsArray = $Env:TAGS.Split("`n", [System.StringSplitOptions]::RemoveEmptyEntries)
-          $tagList = @()
-
-          foreach ($tag in $tagsArray) {
-            $tagName = $tag.Split(":")[0]
-            $tagList += "$tagName@$Env:DIGEST"
-          }
-
-          echo "::group::Images to sign"
-          echo "$tagList"
-          echo "::endgroup::"
-
-          echo "::group::Signing"
-          echo "cosign sign --yes $tagList"
-          cosign sign --yes $tagList
-          echo "::endgroup::"
+        uses: ./.github/actions/cosign-sign
+        with:
+          digest: ${{ steps.docker_build.outputs.digest }}
+          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Attest images
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        uses: ./.github/actions/attest-image
         with:
-          subject-name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, env.BASE_IMAGE_NAME ) }}
-          subject-digest: ${{ steps.docker_build.outputs.digest }}
-          push-to-registry: true
+          subject_name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, env.BASE_IMAGE_NAME ) }}
+          subject_digest: ${{ steps.docker_build.outputs.digest }}
 
       - name: Image digest
         env:
@@ -458,125 +376,38 @@ jobs:
           echo "base_build_image=$buildBaseImage" >> $Env:GITHUB_OUTPUT
 
       - name: Verify ${{ env.BASE_IMAGE_NAME }}:${{ matrix.os }} cosign
-        env:
-          BASE_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
-          OIDC_ISSUER: ${{ env.OIDC_ISSUER }}
-          IDENTITY_REGEX: ${{ env.IDENTITY_REGEX }}
-        run: |
-          cosign verify `
-            --certificate-oidc-issuer-regexp "$Env:OIDC_ISSUER" `
-            --certificate-identity-regexp "$Env:IDENTITY_REGEX" `
-            "$Env:BASE_IMAGE" | jq
+        uses: ./.github/actions/cosign-verify
+        with:
+          image: ${{ steps.base_build.outputs.base_build_image }}
+          oidc_issuer: ${{ env.OIDC_ISSUER }}
+          identity_regexp: ${{ env.IDENTITY_REGEX }}
 
       - name: Build and push image
         id: docker_build
-        env:
-          DOCKERFILES_DIRECTORY: ${{ env.DOCKERFILES_DIRECTORY }}
-          BASE_BUILD_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
-          BASE_BUILD_IMAGE_NAME: ${{ env.BASE_BUILD_IMAGE_NAME }}
-          BASE_BUILD_OS_TAG: ${{ steps.base_os_tag.outputs.os_tag }}
-          MATRIX_COMPONENT: ${{ matrix.component }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-          LABEL_REVISION: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
-          LABEL_CREATED: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-        run: |
-          echo "::group::Docker version"
-          docker version
-          echo "::endgroup::"
-
-          echo "::group::Docker info"
-          docker info
-          echo "::endgroup::"
-
-          $context = "$Env:DOCKERFILES_DIRECTORY\$Env:BASE_BUILD_IMAGE_NAME\windows\"
-          $dockerfile = "$context" + "Dockerfile." + "$Env:MATRIX_COMPONENT"
-          $baseBuildImage = $Env:BASE_BUILD_IMAGE
-
-          Remove-Item -ErrorAction Ignore -Force -Path "$context\README.md"
-
-          $tagsArray = $Env:TAGS.Split("`n", [System.StringSplitOptions]::RemoveEmptyEntries)
-          $tagArgs = $tagsArray | ForEach-Object { "--tag=$_" }
-
-          echo "::group::Image tags"
-          echo "$Env:TAGS"
-          echo "::endgroup::"
-
-          echo "::group::Pull base image"
-          docker pull $baseBuildImage
-          if (-not $?) { throw "Failed to pull $baseBuildImage" }
-          echo "::endgroup::"
-
-          echo "::group::Build Image"
-          Write-Host @"
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
-             --label org.opencontainers.image.created=$Env:LABEL_CREATED
-             --build-arg=BUILD_BASE_IMAGE=$baseBuildImage
-             --file=$dockerfile
-             $tagArgs
-            $context
-          "@
-
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
-                       --label org.opencontainers.image.created=$Env:LABEL_CREATED `
-                       --build-arg=BUILD_BASE_IMAGE=$baseBuildImage `
-                       --file=$dockerfile `
-                       $tagArgs `
-                       $context
-          if (-not $?) { throw "Failed to build image" }
-          echo "::endgroup::"
-
-          echo "::group::Publish Image"
-          foreach ($tag in $tagsArray) {
-            echo "docker image push $tag"
-            docker image push $tag
-            if (-not $?) { throw "Failed to push $tag" }
-          }
-
-          $repoDigest = docker inspect $tagsArray[0] --format "{{ index .RepoDigests 0}}"
-          if (-not $?) { throw "Failed to inspect RepoDigests for $($tagsArray[0])" }
-
-          $digest = $repoDigest.Split('@')[-1]
-          if ([string]::IsNullOrWhiteSpace($digest)) {
-            throw "Image digest is empty"
-          }
-
-          echo "Image digest got from RepoDigests"
-          echo "::endgroup::"
-
-          echo "::group::Digest"
-          echo "$digest"
-          echo "::endgroup::"
-
-          echo "digest=$digest" >> $Env:GITHUB_OUTPUT
+        uses: ./.github/actions/docker-build-push-windows
+        with:
+          context: ${{ env.DOCKERFILES_DIRECTORY }}\${{ env.BASE_BUILD_IMAGE_NAME }}\windows
+          dockerfile: ${{ env.DOCKERFILES_DIRECTORY }}\${{ env.BASE_BUILD_IMAGE_NAME }}\windows\Dockerfile.${{ matrix.component }}
+          tags: ${{ steps.meta.outputs.tags }}
+          label_revision: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+          label_created: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          pull_images: |
+            ${{ steps.base_build.outputs.base_build_image }}
+          build_args: |
+            BUILD_BASE_IMAGE=${{ steps.base_build.outputs.base_build_image }}
+          push: true
 
       - name: Attest images
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        uses: ./.github/actions/attest-image
         with:
-          subject-name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, env.BASE_BUILD_IMAGE_NAME ) }}
-          subject-digest: ${{ steps.docker_build.outputs.digest }}
-          push-to-registry: true
+          subject_name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, env.BASE_BUILD_IMAGE_NAME ) }}
+          subject_digest: ${{ steps.docker_build.outputs.digest }}
 
       - name: Sign the images with GitHub OIDC Token
-        env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          $tagsArray = $Env:TAGS.Split("`n", [System.StringSplitOptions]::RemoveEmptyEntries)
-          $tagList = @()
-
-          foreach ($tag in $tagsArray) {
-            $tagName = $tag.Split(":")[0]
-            $tagList += "$tagName@$Env:DIGEST"
-          }
-
-          echo "::group::Images to sign"
-          echo "$tagList"
-          echo "::endgroup::"
-
-          echo "::group::Signing"
-          echo "cosign sign --yes $tagList"
-          cosign sign --yes $tagList
-          echo "::endgroup::"
+        uses: ./.github/actions/cosign-sign
+        with:
+          digest: ${{ steps.docker_build.outputs.digest }}
+          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Image digest
         env:
@@ -710,150 +541,41 @@ jobs:
           echo "base_build_image=$buildBaseImage" >> $Env:GITHUB_OUTPUT
 
       - name: Verify ${{ env.BASE_BUILD_IMAGE_NAME }}:${{ matrix.os }} cosign
-        env:
-          BASE_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
-          OIDC_ISSUER: ${{ env.OIDC_ISSUER }}
-          IDENTITY_REGEX: ${{ env.IDENTITY_REGEX }}
-        run: |
-          cosign verify `
-            --certificate-oidc-issuer-regexp "$Env:OIDC_ISSUER" `
-            --certificate-identity-regexp "$Env:IDENTITY_REGEX" `
-            "$Env:BASE_IMAGE" | jq
+        uses: ./.github/actions/cosign-verify
+        with:
+          image: ${{ steps.base_build.outputs.base_build_image }}
+          oidc_issuer: ${{ env.OIDC_ISSUER }}
+          identity_regexp: ${{ env.IDENTITY_REGEX }}
 
-      - name: Build and optionally push image
+      - name: Build and push image
         id: docker_build
-        env:
-          DOCKERFILES_DIRECTORY: ${{ env.DOCKERFILES_DIRECTORY }}
-          BASE_BUILD_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
-          BASE_BUILD_IMAGE_NAME: ${{ env.BASE_BUILD_IMAGE_NAME }}
-          MATRIX_COMPONENT: ${{ matrix.component }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-          BASE_BUILD_OS_TAG: ${{ steps.base_os_tag.outputs.os_tag }}
-          LABEL_REVISION: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
-          LABEL_CREATED: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-          OS_BASE_IMAGE_NAME: ${{ env.OS_BASE_IMAGE_NAME }}
-          AUTO_PUSH_IMAGES: ${{ env.AUTO_PUSH_IMAGES }}
-        run: |
-          echo "::group::Docker version"
-          docker version
-          echo "::endgroup::"
-
-          echo "::group::Docker info"
-          docker info
-          echo "::endgroup::"
-
-          $context = "$Env:DOCKERFILES_DIRECTORY\$Env:MATRIX_COMPONENT\windows\"
-          $dockerfile = "$context" + "Dockerfile"
-          $baseBuildImage = $Env:BASE_BUILD_IMAGE
-
-          Remove-Item -ErrorAction Ignore -Force -Path "$context\README.md"
-
-          $tagsArray = $Env:TAGS.Split("`n", [System.StringSplitOptions]::RemoveEmptyEntries)
-          $tagArgs = $tagsArray | ForEach-Object { "--tag=$_" }
-
-          $osTagSuffix = $Env:BASE_BUILD_OS_TAG
-          $baseImage = "$Env:OS_BASE_IMAGE_NAME" + ":" + $osTagSuffix
-
-          echo "::group::Image tags"
-          echo "$Env:TAGS"
-          echo "::endgroup::"
-
-          echo "::group::Pull build base image"
-          docker pull $baseBuildImage
-          if (-not $?) { throw "Failed to pull $baseBuildImage" }
-          echo "::endgroup::"
-
-          echo "::group::Pull PowerShell base image"
-          docker pull $baseImage
-          if (-not $?) { throw "Failed to pull $baseImage" }
-          echo "::endgroup::"
-
-          echo "::group::Build Image"
-          Write-Host @"
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION
-             --label org.opencontainers.image.created=$Env:LABEL_CREATED
-             --build-arg=BUILD_BASE_IMAGE=$baseBuildImage
-             --build-arg=OS_BASE_IMAGE=$baseImage
-             --file=$dockerfile
-             $tagArgs
-            $context
-          "@
-
-          docker build --label org.opencontainers.image.revision=$Env:LABEL_REVISION `
-                       --label org.opencontainers.image.created=$Env:LABEL_CREATED `
-                       --build-arg=BUILD_BASE_IMAGE=$baseBuildImage `
-                       --build-arg=OS_BASE_IMAGE=$baseImage `
-                       --file=$dockerfile `
-                       $tagArgs `
-                       $context
-          if (-not $?) { throw "Failed to build image" }
-          echo "::endgroup::"
-
-          echo "::group::Publish Image"
-          if ($Env:AUTO_PUSH_IMAGES -eq 'true') {
-            foreach ($tag in $tagsArray) {
-              echo "docker image push $tag"
-              docker image push $tag
-              if (-not $?) { throw "Failed to push $tag" }
-            }
-
-            $repoDigest = docker inspect $tagsArray[0] --format "{{ index .RepoDigests 0}}"
-            if (-not $?) { throw "Failed to inspect RepoDigests for $($tagsArray[0])" }
-
-            $digest = $repoDigest.Split('@')[-1]
-            if ([string]::IsNullOrWhiteSpace($digest)) {
-              throw "Image digest is empty"
-            }
-
-            echo "Image digest got from RepoDigests"
-          }
-          else {
-            $digest = docker inspect $tagsArray[0] --format "{{ index .Id}}"
-            if (-not $?) { throw "Failed to inspect image Id for $($tagsArray[0])" }
-
-            if ([string]::IsNullOrWhiteSpace($digest)) {
-              throw "Image ID digest is empty"
-            }
-
-            echo "Image digest got from Id"
-          }
-          echo "::endgroup::"
-
-          echo "::group::Digest"
-          echo "$digest"
-          echo "::endgroup::"
-
-          echo "digest=$digest" >> $Env:GITHUB_OUTPUT
+        uses: ./.github/actions/docker-build-push-windows
+        with:
+          context: ${{ env.DOCKERFILES_DIRECTORY }}\${{ matrix.component }}\windows
+          dockerfile: ${{ env.DOCKERFILES_DIRECTORY }}\${{ matrix.component }}\windows\Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          label_revision: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+          label_created: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          pull_images: |
+            ${{ steps.base_build.outputs.base_build_image }}
+            ${{ env.OS_BASE_IMAGE_NAME }}:${{ steps.base_os_tag.outputs.os_tag }}
+          build_args: |
+            BUILD_BASE_IMAGE=${{ steps.base_build.outputs.base_build_image }}
+            OS_BASE_IMAGE=${{ env.OS_BASE_IMAGE_NAME }}:${{ steps.base_os_tag.outputs.os_tag }}
+          push: ${{ env.AUTO_PUSH_IMAGES }}
 
       - name: Sign the images with GitHub OIDC Token
         if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          $tagsArray = $Env:TAGS.Split("`n", [System.StringSplitOptions]::RemoveEmptyEntries)
-          $tagList = @()
-
-          foreach ($tag in $tagsArray) {
-            $tagName = $tag.Split(":")[0]
-            $tagList += "$tagName@$Env:DIGEST"
-          }
-
-          echo "::group::Images to sign"
-          echo "$tagList"
-          echo "::endgroup::"
-
-          echo "::group::Signing"
-          echo "cosign sign --yes $tagList"
-          cosign sign --yes $tagList
-          echo "::endgroup::"
+        uses: ./.github/actions/cosign-sign
+        with:
+          digest: ${{ steps.docker_build.outputs.digest }}
+          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Attest images
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        uses: ./.github/actions/attest-image
         with:
-          subject-name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, matrix.component ) }}
-          subject-digest: ${{ steps.docker_build.outputs.digest }}
-          push-to-registry: true
+          subject_name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, matrix.component ) }}
+          subject_digest: ${{ steps.docker_build.outputs.digest }}
 
       - name: Print final image digest
         if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
