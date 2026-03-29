@@ -205,12 +205,10 @@ jobs:
           fetch-depth: 1
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
+        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
+        uses: ./.github/actions/cosign-install
         with:
-          cosign-release: 'v2.4.0'
-
-      - name: Check cosign version
-        run: cosign version
+          cosign_release: v2.4.0
 
       - name: Login to DockerHub
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
@@ -299,7 +297,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           path: ${{ env.BASE_IMAGE_NAME }}_${{ matrix.os }}_${{ matrix.component }}
-          name: ${{ env.BASE_BUILD_NAME }}-${{ matrix.os }}-${{ github.run_id }}
+          name: ${{ env.BASE_IMAGE_NAME }}-${{ matrix.os }}-${{ github.run_id }}
 
   build_components:
     name: Build ${{ matrix.component }} sources on ${{ matrix.os }}
@@ -325,12 +323,9 @@ jobs:
           fetch-depth: 1
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
+        uses: ./.github/actions/cosign-install
         with:
-          cosign-release: 'v2.4.0'
-
-      - name: Check cosign version
-        run: cosign version
+          cosign_release: v2.4.0
 
       - name: Login to DockerHub
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
@@ -480,21 +475,17 @@ jobs:
         component: ${{ fromJson(needs.init_build.outputs.components) }}
 
     steps:
+      - name: Install cosign
+        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
+        uses: ./.github/actions/cosign-install
+        with:
+          cosign_release: v2.4.0
+
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ env.TRUNK_ONLY_EVENT == 'true' && env.TRUNK_GIT_BRANCH || '' }}
           fetch-depth: 1
-
-      - name: Install cosign
-        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
-        with:
-          cosign-release: 'v2.4.0'
-
-      - name: Check cosign version
-        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        run: cosign version
 
       - name: Login to DockerHub
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
