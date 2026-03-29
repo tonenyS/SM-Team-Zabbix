@@ -16,4 +16,5 @@ runs:
         cosign-release: ${{ inputs.cosign_release }}
 
     - name: Check cosign version
+      shell: bash
       run: cosign version
