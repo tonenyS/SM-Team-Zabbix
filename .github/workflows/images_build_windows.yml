@@ -13,6 +13,7 @@ on:
       - 'Dockerfiles/*/windows/*'
       - '!**/README.md'
       - '.github/workflows/images_build_windows.yml'
+      - '.github/workflows/docker-build-push-windows/*'
   schedule:
     - cron:  '05 02 * * *'
   workflow_dispatch:
