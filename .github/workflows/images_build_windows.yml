@@ -169,7 +169,34 @@ jobs:
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
           disable-sudo: true
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            aka.ms:443
+            api.github.com:443
+            auth.docker.io:443
+            curl.se:443
+            dc.services.visualstudio.com:443
+            definitionupdates.microsoft.com:443
+            dl.google.com:443
+            download.visualstudio.microsoft.com:443
+            fulcio.sigstore.dev:443
+            github.com:443
+            go.dev:443
+            go.microsoft.com:443
+            index.docker.io:443
+            mcr.microsoft.com:443
+            mobile.events.data.microsoft.com:443
+            ocsp.digicert.com:80
+            ocsp.sectigo.com:80
+            production.cloudflare.docker.com:443
+            r12.c.lencr.org:80
+            raw.githubusercontent.com:443
+            registry-1.docker.io:443
+            rekor.sigstore.dev:443
+            tuf-repo-cdn.sigstore.dev:443
+            www.nasm.us:443
+            x1.c.lencr.org:80
+            zlib.net:443
 
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -272,7 +299,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           path: ${{ env.BASE_IMAGE_NAME }}_${{ matrix.os }}_${{ matrix.component }}
-          key: ${{ env.BASE_BUILD_NAME }}-${{ matrix.os }}-${{ github.run_id }}
+          name: ${{ env.BASE_BUILD_NAME }}-${{ matrix.os }}-${{ github.run_id }}
 
   build_components:
     name: Build ${{ matrix.component }} sources on ${{ matrix.os }}
