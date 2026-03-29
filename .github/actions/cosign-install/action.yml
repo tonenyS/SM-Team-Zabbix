@@ -4,7 +4,7 @@ description: Install cosign and print its version
 inputs:
   cosign_release:
     required: false
-    default: v2.4.0
+    default: v3.0.5
     description: Cosign release version to install
 
 runs:
@@ -16,5 +16,4 @@ runs:
         cosign-release: ${{ inputs.cosign_release }}
 
     - name: Check cosign version
-      shell: bash
       run: cosign version

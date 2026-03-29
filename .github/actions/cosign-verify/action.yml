@@ -39,7 +39,7 @@ runs:
         echo "::endgroup::"
 
     - name: Verify image signature on Windows
-      if: runner.os != 'Windows'
+      if: runner.os == 'Windows'
       shell: pwsh
       env:
         IMAGE: ${{ inputs.image }}
