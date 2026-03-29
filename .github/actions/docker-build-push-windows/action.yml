@@ -79,7 +79,7 @@ runs:
           Remove-Item -ErrorAction Ignore -Force -Path (Join-Path $Env:CONTEXT 'README.md')
         }
 
-        $tagsArray = $Env:TAGS -split "\r?\n" | Where-Object { $_.Trim() }
+        $tagsArray = @($Env:TAGS -split "\r?\n" | Where-Object { $_.Trim() })
         if ($tagsArray.Count -eq 0) {
           throw 'No image tags provided'
         }
@@ -93,7 +93,7 @@ runs:
         $tagsArray | ForEach-Object { Write-Output $_ }
         Write-Output '::endgroup::'
 
-        $pullImagesArray = $Env:PULL_IMAGES -split "\r?\n" | Where-Object { $_.Trim() }
+        $pullImagesArray = @($Env:PULL_IMAGES -split "\r?\n" | Where-Object { $_.Trim() })
         if ($pullImagesArray.Count -gt 0) {
           Write-Output '::group::Pull base images'
           foreach ($image in $pullImagesArray) {
@@ -106,7 +106,7 @@ runs:
           Write-Output '::endgroup::'
         }
 
-        $buildArgsInputArray = $Env:BUILD_ARGS_INPUT -split "\r?\n" | Where-Object { $_.Trim() }
+        $buildArgsInputArray = @($Env:BUILD_ARGS_INPUT -split "\r?\n" | Where-Object { $_.Trim() })
         $buildArgCliArgs = @()
 
         foreach ($buildArg in $buildArgsInputArray) {
