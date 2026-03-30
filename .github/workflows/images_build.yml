@@ -303,7 +303,7 @@ jobs:
 
       - name: Build and publish image
         id: docker_build
-        uses: ./.github/actions/docker-build-linux
+        uses: ./.github/actions/docker-build-push-linux
         with:
           context: ${{ format('{0}/{1}/{2}', env.DOCKERFILES_DIRECTORY, env.BASE_BUILD_NAME, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, env.BASE_BUILD_NAME, matrix.os) }}
@@ -483,7 +483,7 @@ jobs:
 
       - name: Build ${{ matrix.build }}/${{ matrix.os }} and push
         id: docker_build
-        uses: ./.github/actions/docker-build-linux
+        uses: ./.github/actions/docker-build-push-linux
         with:
           context: ${{ format('{0}/{1}/{2}/', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
@@ -771,7 +771,7 @@ jobs:
       - name: Build and push image
         if: ${{ matrix.build != 'snmptraps' }}
         id: docker_build
-        uses: ./.github/actions/docker-build-linux
+        uses: ./.github/actions/docker-build-push-linux
         with:
           context: ${{ format('{0}/{1}/{2}', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
@@ -788,7 +788,7 @@ jobs:
       - name: Build and push snmptraps image
         if: ${{ matrix.build == 'snmptraps' }}
         id: docker_build_snmptraps
-        uses: ./.github/actions/docker-build-linux
+        uses: ./.github/actions/docker-build-push-linux
         with:
           context: ${{ format('{0}/{1}/{2}', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
