@@ -35,7 +35,6 @@ env:
 
   DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
   DOCKER_REPOSITORY: ${{ vars.DOCKER_REPOSITORY }}
-  LATEST_BRANCH: ${{ github.event.repository.default_branch }}
   TRUNK_GIT_BRANCH: "refs/heads/trunk"
   IMAGES_PREFIX: "zabbix-"
 
@@ -119,34 +118,10 @@ jobs:
 
       - name: Get branch info
         id: branch_info
-        shell: bash
-        env:
-          LATEST_BRANCH: ${{ env.LATEST_BRANCH }}
-          GITHUB_REF_RAW: ${{ env.TRUNK_ONLY_EVENT == 'true' && env.TRUNK_GIT_BRANCH || github.ref }}
-        run: |
-          github_ref="$GITHUB_REF_RAW"
-          sha_short="$(git rev-parse --short HEAD)"
-
-          if [[ "$github_ref" == refs/tags/* ]]; then
-            github_ref="${github_ref%.*}"
-          fi
-
-          github_ref="${github_ref##*/}"
-
-          is_default_branch=false
-          if [[ "$github_ref" == "$LATEST_BRANCH" ]]; then
-            is_default_branch=true
-          fi
-
-          echo "::group::Branch data"
-          echo "is_default_branch=$is_default_branch"
-          echo "current_branch=$github_ref"
-          echo "sha_short=$sha_short"
-          echo "::endgroup::"
-
-          echo "is_default_branch=$is_default_branch" >> "$GITHUB_OUTPUT"
-          echo "current_branch=$github_ref" >> "$GITHUB_OUTPUT"
-          echo "sha_short=$sha_short" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/get-branch-info
+        with:
+          trunk_version: ${{ inputs.trunk_version }}
+          trunk_git_branch: ${{ env.TRUNK_GIT_BRANCH }}
 
   build_base:
     name: Build ${{ matrix.component }} base on ${{ matrix.os }}
@@ -471,6 +446,12 @@ jobs:
         component: ${{ fromJson(needs.init_build.outputs.components) }}
 
     steps:
+      - name: Block egress traffic
+        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+        with:
+          disable-sudo: true
+          egress-policy: audit
+
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
