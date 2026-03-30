@@ -37,7 +37,6 @@ env:
 
   DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
   DOCKER_REPOSITORY: ${{ vars.DOCKER_REPOSITORY }}
-  LATEST_BRANCH: ${{ github.event.repository.default_branch }}
   TRUNK_GIT_BRANCH: "refs/heads/trunk"
   IMAGES_PREFIX: "zabbix-"
 
@@ -83,7 +82,9 @@ jobs:
         with:
           ref: ${{ env.TRUNK_ONLY_EVENT == 'true' && env.TRUNK_GIT_BRANCH || '' }}
           fetch-depth: 1
-          sparse-checkout: ${{ env.MATRIX_FILE }}
+          sparse-checkout: |
+            ${{ env.MATRIX_FILE }}
+            .github
 
       - name: Check matrix file
         env:
@@ -139,33 +140,10 @@ jobs:
 
       - name: Get branch info
         id: branch_info
-        env:
-          LATEST_BRANCH: ${{ env.LATEST_BRANCH }}
-          GITHUB_REF_RAW: ${{ env.TRUNK_ONLY_EVENT == 'true' && env.TRUNK_GIT_BRANCH || github.ref }}
-        run: |
-          github_ref="$GITHUB_REF_RAW"
-          sha_short="$(git rev-parse --short HEAD)"
-
-          if [[ "$github_ref" == refs/tags/* ]]; then
-            github_ref="${github_ref%.*}"
-          fi
-
-          github_ref="${github_ref##*/}"
-
-          is_default_branch=false
-          if [[ "$github_ref" == "$LATEST_BRANCH" ]]; then
-            is_default_branch=true
-          fi
-
-          echo "::group::Branch data"
-          echo "is_default_branch=$is_default_branch"
-          echo "current_branch=$github_ref"
-          echo "sha_short=$sha_short"
-          echo "::endgroup::"
-
-          echo "is_default_branch=$is_default_branch" >> "$GITHUB_OUTPUT"
-          echo "current_branch=$github_ref" >> "$GITHUB_OUTPUT"
-          echo "sha_short=$sha_short" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/get-branch-info
+        with:
+          trunk_version: ${{ inputs.trunk_version }}
+          trunk_git_branch: ${{ env.TRUNK_GIT_BRANCH }}
 
   build_base:
     timeout-minutes: 30
@@ -289,21 +267,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
-
-      - name: Check cosign version
-        run: cosign version
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          platforms: all
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-        with:
-          driver-opts: image=moby/buildkit:v0.28.1
+        uses: ./.github/actions/cosign-install
 
       - name: Prepare platform list
         id: platform
@@ -330,21 +294,21 @@ jobs:
           trunk_only_event: ${{ env.TRUNK_ONLY_EVENT }}
           event_name: ${{ github.event_name }}
 
-      - name: Login to DockerHub
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+      - name: Set up Docker tooling
+        uses: ./.github/actions/docker-linux-setup
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          auto_push_images: true
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and publish image
         id: docker_build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: ./.github/actions/docker-build-linux
         with:
           context: ${{ format('{0}/{1}/{2}', env.DOCKERFILES_DIRECTORY, env.BASE_BUILD_NAME, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, env.BASE_BUILD_NAME, matrix.os) }}
           platforms: ${{ steps.platform.outputs.list }}
           push: true
-          provenance: mode=max
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
@@ -452,21 +416,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
-
-      - name: Check cosign version
-        run: cosign version
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          platforms: all
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-        with:
-          driver-opts: image=moby/buildkit:v0.28.1
+        uses: ./.github/actions/cosign-install
 
       - name: Prepare platform list
         id: platform
@@ -524,49 +474,38 @@ jobs:
           oidc_issuer: ${{ env.OIDC_ISSUER }}
           identity_regexp: ${{ env.IDENTITY_REGEX }}
 
-      - name: Login to DockerHub
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+      - name: Set up Docker tooling
+        uses: ./.github/actions/docker-linux-setup
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          auto_push_images: true
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build ${{ matrix.build }}/${{ matrix.os }} and push
         id: docker_build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: ./.github/actions/docker-build-linux
         with:
           context: ${{ format('{0}/{1}/{2}/', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
-          build-contexts: |
-            sources=./sources/
-            config_templates=./config_templates/
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           platforms: ${{ steps.platform.outputs.list }}
           push: true
-          provenance: mode=max
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: |
+          build_contexts: |
+            sources=./sources/
+            config_templates=./config_templates/
+          build_args: |
             BUILD_BASE_IMAGE=${{ steps.base_build.outputs.base_build_image }}
           labels: |
             org.opencontainers.image.revision=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
             org.opencontainers.image.created=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
 
       - name: Sign the images with GitHub OIDC Token
-        env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          images=()
-          for tag in ${TAGS}; do
-            images+=("${tag}@${DIGEST}")
-          done
-
-          echo "::group::Images to sign"
-          printf '%s\n' "${images[@]}"
-          echo "::endgroup::"
-
-          echo "::group::Signing"
-          cosign sign --yes "${images[@]}"
-          echo "::endgroup::"
+        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
+        uses: ./.github/actions/cosign-sign
+        with:
+          digest: ${{ steps.docker_build.outputs.digest }}
+          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Attest images
         id: attest
@@ -724,22 +663,7 @@ jobs:
 
       - name: Install cosign
         if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
-
-      - name: Check cosign version
-        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        run: cosign version
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          platforms: all
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-        with:
-          driver-opts: image=moby/buildkit:v0.28.1
+        uses: ./.github/actions/cosign-install
 
       - name: Prepare platform list
         id: platform
@@ -831,61 +755,46 @@ jobs:
           echo "base_build_image=${image_name}@${image_digest}" >> "$GITHUB_OUTPUT"
 
       - name: Verify ${{ steps.build_base_image.outputs.build_base }}:${{ matrix.os }} cosign
-        if: ${{ matrix.build != 'snmptraps' && env.AUTO_PUSH_IMAGES == 'true' }}
-        env:
-          BASE_IMAGE: ${{ steps.base_build.outputs.base_build_image }}
-          OIDC_ISSUER: ${{ env.OIDC_ISSUER }}
-          IDENTITY_REGEX: ${{ env.IDENTITY_REGEX }}
-        run: |
-          echo "::group::Image sign data"
-          echo "OIDC issuer=$OIDC_ISSUER"
-          echo "Identity=$IDENTITY_REGEX"
-          echo "Image to verify=$BASE_IMAGE"
-          echo "::endgroup::"
-
-          echo "::group::Verify signature"
-          cosign verify \
-            --certificate-oidc-issuer-regexp "$OIDC_ISSUER" \
-            --certificate-identity-regexp "$IDENTITY_REGEX" \
-            "$BASE_IMAGE" | jq
-          echo "::endgroup::"
-
-      - name: Login to DockerHub
-        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: ./.github/actions/cosign-verify
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          image: ${{ steps.base_build.outputs.base_build_image }}
+          oidc_issuer: ${{ env.OIDC_ISSUER }}
+          identity_regexp: ${{ env.IDENTITY_REGEX }}
+
+      - name: Set up Docker tooling
+        uses: ./.github/actions/docker-linux-setup
+        with:
+          auto_push_images: ${{ env.AUTO_PUSH_IMAGES }}
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push image
         if: ${{ matrix.build != 'snmptraps' }}
         id: docker_build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: ./.github/actions/docker-build-linux
         with:
           context: ${{ format('{0}/{1}/{2}', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           platforms: ${{ steps.platform.outputs.list }}
-          push: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-          provenance: mode=max
-          sbom: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
+          push: ${{ env.AUTO_PUSH_IMAGES }}
+          sbom: ${{ env.AUTO_PUSH_IMAGES }}
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: |
+          build_args: |
             BUILD_BASE_IMAGE=${{ steps.base_build.outputs.base_build_image }}
           labels: |
             org.opencontainers.image.revision=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
             org.opencontainers.image.created=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
 
-      - name: Build snmptraps image
+      - name: Build and push snmptraps image
         if: ${{ matrix.build == 'snmptraps' }}
-        id: docker_build_snmptraps
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        id: docker_build
+        uses: ./.github/actions/docker-build-linux
         with:
           context: ${{ format('{0}/{1}/{2}', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           file: ${{ format('{0}/{1}/{2}/Dockerfile', env.DOCKERFILES_DIRECTORY, matrix.build, matrix.os) }}
           platforms: ${{ steps.platform.outputs.list }}
-          push: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-          provenance: mode=max
-          sbom: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
+          push: ${{ env.AUTO_PUSH_IMAGES }}
+          sbom: ${{ env.AUTO_PUSH_IMAGES }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
             org.opencontainers.image.revision=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
@@ -893,22 +802,10 @@ jobs:
 
       - name: Sign the images with GitHub OIDC Token
         if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        env:
-          DIGEST: ${{ matrix.build == 'snmptraps' && steps.docker_build_snmptraps.outputs.digest || steps.docker_build.outputs.digest }}
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          images=()
-          for tag in ${TAGS}; do
-            images+=("${tag}@${DIGEST}")
-          done
-
-          echo "::group::Images to sign"
-          printf '%s\n' "${images[@]}"
-          echo "::endgroup::"
-
-          echo "::group::Signing"
-          cosign sign --yes "${images[@]}"
-          echo "::endgroup::"
+        uses: ./.github/actions/cosign-sign
+        with:
+          digest: ${{ matrix.build == 'snmptraps' && steps.docker_build_snmptraps.outputs.digest || steps.docker_build.outputs.digest }}
+          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Attest images
         if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}

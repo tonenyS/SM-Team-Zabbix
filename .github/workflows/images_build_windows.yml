@@ -71,6 +71,7 @@ jobs:
         with:
           disable-sudo: true
           egress-policy: block
+          disable-telemetry: true
           allowed-endpoints: >
             github.com:443
             release-assets.githubusercontent.com:443
@@ -147,6 +148,7 @@ jobs:
         with:
           disable-sudo: true
           egress-policy: block
+          disable-telemetry: true
           allowed-endpoints: >
             aka.ms:443
             api.github.com:443
@@ -220,7 +222,7 @@ jobs:
             type=semver,enable=${{ needs.init_build.outputs.current_branch != 'trunk' }},pattern={{version}},suffix=-${{ steps.base_os_tag.outputs.os_tag }},prefix=${{ matrix.component }}-
             type=ref,enable=${{ needs.init_build.outputs.current_branch != 'trunk' }},event=branch,prefix=${{ matrix.component }}-${{ steps.base_os_tag.outputs.os_tag }}-,suffix=-latest
             type=ref,enable=${{ needs.init_build.outputs.current_branch != 'trunk' }},event=branch,suffix=-${{ steps.base_os_tag.outputs.os_tag }}-latest,prefix=${{ matrix.component }}-
-            type=raw,enable=${{ (needs.init_build.outputs.current_branch != 'trunk') && (needs.init_build.outputs.is_default_branch == 'true') }},value=${{ matrix.component }}-${{ steps.base_os_tag.outputs.os_tag }}-latest
+            type=raw,enable=${{ needs.init_build.outputs.current_branch != 'trunk' && needs.init_build.outputs.is_default_branch == 'true' }},value=${{ matrix.component }}-${{ steps.base_os_tag.outputs.os_tag }}-latest
             type=ref,enable=${{ needs.init_build.outputs.current_branch == 'trunk' }},event=branch,prefix=${{ matrix.component }}-${{ steps.base_os_tag.outputs.os_tag }}-
             type=ref,enable=${{ needs.init_build.outputs.current_branch == 'trunk' }},event=branch,suffix=-${{ steps.base_os_tag.outputs.os_tag }},prefix=${{ matrix.component }}-
           flavor: |
@@ -453,6 +455,7 @@ jobs:
         with:
           disable-sudo: true
           egress-policy: audit
+          disable-telemetry: true
 
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -576,12 +579,3 @@ jobs:
         with:
           subject_name: ${{ format('{0}/{1}/{2}{3}', env.DOCKER_REGISTRY, env.DOCKER_REPOSITORY, env.IMAGES_PREFIX, matrix.component ) }}
           subject_digest: ${{ steps.docker_build.outputs.digest }}
-
-      - name: Print final image digest
-        if: ${{ env.AUTO_PUSH_IMAGES == 'true' }}
-        env:
-          DIGEST: ${{ steps.docker_build.outputs.digest }}
-        run: |
-          echo "::group::Image digest"
-          echo "$Env:DIGEST"
-          echo "::endgroup::"
