@@ -80,7 +80,9 @@ jobs:
         with:
           ref: ${{ env.TRUNK_ONLY_EVENT == 'true' && env.TRUNK_GIT_BRANCH || '' }}
           fetch-depth: 1
-          sparse-checkout: ${{ env.MATRIX_FILE }}
+          sparse-checkout: |
+            ${{ env.MATRIX_FILE }}
+            .github
 
       - name: Check matrix file
         env:
