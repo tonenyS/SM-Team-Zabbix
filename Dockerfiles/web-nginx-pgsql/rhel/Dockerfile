@@ -71,6 +71,7 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
     set -eux && \
     INSTALL_PKGS="bash \
             curl-minimal \
+            jq \
             supervisor \
             shadow-utils \
             findutils \
@@ -86,7 +87,6 @@ RUN --mount=type=tmpfs,target=/var/lib/dnf/ \
             php-ldap \
             php-mbstring \
             php-pgsql \
-            jq \
             php-xml" && \
     curl --tlsv1.2 -sSf -L https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm -o /tmp/epel-release-latest-10.noarch.rpm && \
     rpm -ivh /tmp/epel-release-latest-10.noarch.rpm && \

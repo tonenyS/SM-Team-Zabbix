@@ -123,7 +123,6 @@ get_vault_secrets() {
     if [ "${ZBX_VAULT}" == "HashiCorp" ]; then
         while ! vaultdata="$(curl "${curl_opts[@]}" -H "X-Vault-Token: $VAULT_TOKEN" "$vault_url")"; do
             echo "**** Vault is not available. Waiting ${WAIT_TIMEOUT} seconds... ****"
-            echo "CURL command: curl ${curl_opts[*]} -H \"X-Vault-Token: $VAULT_TOKEN\" \"$vault_url\""
             sleep $WAIT_TIMEOUT
         done
         errors=$(printf '%s' "$vaultdata" | jq -r '.errors // empty')
@@ -135,14 +134,14 @@ get_vault_secrets() {
         DB_SERVER_ZBX_PASS="$(printf '%s' "$vaultdata" | jq -r '.data.data.password')"
 
     elif [ "${ZBX_VAULT}" == "CyberArk" ]; then
-    cyberark_opts=(-H "Content-type: application/json" --cert "$ZBX_VAULTCERTFILE")
+        cyberark_opts=(-H "Content-type: application/json" --cert "$ZBX_VAULTCERTFILE")
 
         # if key is defined use it
         if [ -n "${ZBX_VAULTKEYFILE}" ]; then
             cyberark_opts+=(--key "$ZBX_VAULTKEYFILE")
         fi
         while ! vaultdata=$(curl "${curl_opts[@]}" "${cyberark_opts[@]}" "$vault_url") ; do
-            echo "**** Vault is not available. Waiting 5 seconds... ****"
+            echo "**** Vault is not available. Waiting ${WAIT_TIMEOUT} seconds... ****"
             sleep $WAIT_TIMEOUT
         done
 
@@ -185,8 +184,8 @@ check_db_connect() {
         unset DB_SERVER_ZBX_USER
         unset DB_SERVER_ZBX_PASS
 
-        echo "*************** Connecting to vault... ***************************************"
-        echo "*************** VAULT URL: $ZBX_VAULTURL"
+        echo "***** Connecting to vault... ******"
+        echo "***** VAULT URL: $ZBX_VAULTURL"
         get_vault_secrets
     fi
 
@@ -208,7 +207,7 @@ check_db_connect() {
     fi
 
     while [ ! "$(psql $psql_connect_args --username ${DB_SERVER_ZBX_USER} --dbname ${DB_SERVER_DBNAME} --list --quiet 2>/dev/null)" ]; do
-        echo "**** PostgreSQL server is not available. Waiting $WAIT_TIMEOUT seconds..."
+        echo "**** PostgreSQL server is not available. Waiting ${WAIT_TIMEOUT} seconds..."
         sleep $WAIT_TIMEOUT
     done
 

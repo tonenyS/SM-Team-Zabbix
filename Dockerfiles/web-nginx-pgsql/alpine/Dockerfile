@@ -50,6 +50,7 @@ RUN set -eux && \
     INSTALL_PKGS="bash \
             tzdata \
             curl \
+            jq \
             nginx \
             php84-bcmath \
             php84-ctype \
@@ -69,7 +70,6 @@ RUN set -eux && \
             php84-xmlwriter \
             php84-openssl \
             postgresql17-client \
-            jq \
             supervisor" && \
     apk add \
             --no-cache \

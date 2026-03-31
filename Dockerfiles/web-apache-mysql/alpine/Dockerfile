@@ -50,7 +50,7 @@ RUN set -eux && \
     INSTALL_PKGS="bash \
             tzdata \
             curl \
-	    jq \
+            jq \
             mariadb-client \
             mariadb-connector-c \
             apache2 \
