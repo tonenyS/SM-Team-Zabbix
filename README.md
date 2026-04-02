@@ -1,77 +1,232 @@
-![Zabbix Logo](https://assets.zabbix.com/img/logo/zabbix_logo_500x131.png)
+# SM-Team-Zibbix
 
+โปรเจกต์นี้ใช้ Docker Compose สำหรับรันระบบ Zabbix บนเครื่อง local หรือเครื่อง UAT โดยอิงจากโครงสร้าง `zabbix-docker` และปรับค่าไว้สำหรับงานของทีม
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/zabbix/zabbix-docker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/zabbix/zabbix-docker)
-<a href="https://bestpractices.coreinfrastructure.org/projects/8395" style="display: inline;"><img src="https://bestpractices.coreinfrastructure.org/projects/8395/badge" style="display: inline;"></a>
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=zabbix-docker&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=zabbix-docker)
+## ภาพรวมระบบ
 
-[![Build images (DockerHub)](https://github.com/zabbix/zabbix-docker/actions/workflows/images_build.yml/badge.svg?branch=7.4&event=push)](https://github.com/zabbix/zabbix-docker/actions/workflows/images_build.yml)
-[![Build images (DockerHub, Windows)](https://github.com/zabbix/zabbix-docker/actions/workflows/images_build_windows.yml/badge.svg?branch=7.4&event=push)](https://github.com/zabbix/zabbix-docker/actions/workflows/images_build_windows.yml)
+service หลักที่ใช้ในชุดนี้:
 
-# What is Zabbix?
+- `mysql-server` สำหรับฐานข้อมูล
+- `zabbix-server` สำหรับประมวลผลข้อมูล monitoring
+- `zabbix-web-nginx-mysql` สำหรับหน้าเว็บ Zabbix
+- `server-db-init` สำหรับ initialize schema ของฐานข้อมูล
 
-Zabbix is an enterprise-class open source distributed monitoring solution.
+service เพิ่มเติมที่มีใน compose:
 
-Zabbix is software that monitors numerous parameters of a network and the health and integrity of servers. Zabbix uses a flexible notification mechanism that allows users to configure e-mail based alerts for virtually any event. This allows a fast reaction to server problems. Zabbix offers excellent reporting and data visualisation features based on the stored data. This makes Zabbix ideal for capacity planning.
+- `zabbix-agent`
+- `zabbix-proxy-sqlite3`
+- `zabbix-proxy-mysql`
+- `zabbix-java-gateway`
+- `zabbix-snmptraps`
+- `zabbix-web-service`
 
-For more information and related downloads for Zabbix components, please visit https://hub.docker.com/u/zabbix/ and https://zabbix.com
+## โครงสร้างไฟล์สำคัญ
 
+- `compose.yaml` จุดเริ่มต้นของ Docker Compose
+- `compose_zabbix_components.yaml` กำหนดค่าของ Zabbix services
+- `compose_databases.yaml` กำหนดค่าฐานข้อมูล
+- `.env` เก็บค่า image tag, port, network และ path หลักของโปรเจกต์
+- `env_vars/` เก็บ environment files และ secret files ที่ container ใช้งาน
+- `zbx_env/` เก็บ data, scripts และไฟล์ mount ที่ใช้ระหว่างรันระบบ
 
-## Zabbix Dockerfiles
+## สิ่งที่ต้องมี
 
-This repository contains **Dockerfile** of [Zabbix](https://zabbix.com/) for [Docker](https://www.docker.com/)'s [automated build](https://registry.hub.docker.com/u/zabbix/) published to the public [Docker Hub Registry](https://registry.hub.docker.com/).
+- Docker Desktop
+- Docker Compose v2
+- Git
 
-### Base Docker Image
+ตรวจสอบเวอร์ชันด้วยคำสั่ง:
 
-* [alpine](https://hub.docker.com/_/alpine/)
-* [centos](https://quay.io/repository/centos/centos?tab=info)
-* [oracle linux](https://hub.docker.com/_/oraclelinux/)
-* [ubuntu](https://hub.docker.com/_/ubuntu/)
+```powershell
+docker --version
+docker compose version
+git --version
+```
 
-### Usage
+## การตั้งค่าก่อนรัน
 
-There is some documentation and examples in the [official Zabbix Documentation](https://www.zabbix.com/documentation/current/manual/installation/containers)!
+1. clone repo นี้ลงเครื่อง
 
-Please also follow usage instructions of each Zabbix component image:
+```powershell
+git clone https://github.com/tonenyS/SM-Team-Zibbix.git
+cd SM-Team-Zibbix
+```
 
-* [zabbix-agent](https://hub.docker.com/r/zabbix/zabbix-agent/) - Zabbix agent
-* [zabbix-agent2](https://hub.docker.com/r/zabbix/zabbix-agent2/) - Zabbix agent 2
-* [zabbix-server-mysql](https://hub.docker.com/r/zabbix/zabbix-server-mysql/) - Zabbix server with MySQL database support
-* [zabbix-server-pgsql](https://hub.docker.com/r/zabbix/zabbix-server-pgsql/) - Zabbix server with PostgreSQL database support
-* [zabbix-web-apache-mysql](https://hub.docker.com/r/zabbix/zabbix-web-apache-mysql/) - Zabbix web interface on Apache2 web server with MySQL database support
-* [zabbix-web-apache-pgsql](https://hub.docker.com/r/zabbix/zabbix-web-apache-pgsql/) - Zabbix web interface on Apache2 web server with PostgreSQL database support
-* [zabbix-web-nginx-mysql](https://hub.docker.com/r/zabbix/zabbix-web-nginx-mysql/) - Zabbix web interface on Nginx web server with MySQL database support
-* [zabbix-web-nginx-pgsql](https://hub.docker.com/r/zabbix/zabbix-web-nginx-pgsql/) - Zabbix web interface on Nginx web server with PostgreSQL database support
-* [zabbix-proxy-sqlite3](https://hub.docker.com/r/zabbix/zabbix-proxy-sqlite3/) - Zabbix proxy with SQLite3 database support
-* [zabbix-proxy-mysql](https://hub.docker.com/r/zabbix/zabbix-proxy-mysql/) - Zabbix proxy with MySQL database support
-* [zabbix-java-gateway](https://hub.docker.com/r/zabbix/zabbix-java-gateway/) - Zabbix Java Gateway
-* [zabbix-web-service](https://hub.docker.com/r/zabbix/zabbix-web-service/) - Zabbix web service for performing various tasks using headless web browser (for example, reporting)
-* [zabbix-snmptraps](https://hub.docker.com/r/zabbix/zabbix-snmptraps/) - Additional container image for Zabbix server and Zabbix proxy to support SNMP traps
+2. ตรวจสอบไฟล์ `.env`
 
-### Docker Compose
+ค่าเริ่มต้นที่สำคัญ:
 
-There is provided Docker Compose files for each set of base Operating System and Database engine.
+- `OS=alpine`
+- `ZBX_VERSION=7.4`
+- `DATA_DIRECTORY=./zbx_env`
+- `ENV_VARS_DIRECTORY=./env_vars`
+- `ZABBIX_SERVER_PORT=10051`
+- `ZABBIX_WEB_NGINX_HTTP_PORT=80`
+- `ZABBIX_WEB_APACHE_HTTP_PORT=8081`
 
-Templates support several [Compose  profiles](https://docs.docker.com/compose/profiles/). Minimal set of services is brought up by default, to start additional components e.g. Zabbix Agent use profile 'full' or 'all'. Additionally, it is possible to start only required components.
+3. ตรวจสอบไฟล์ในโฟลเดอร์ `env_vars/`
 
-## Issues and Wiki
+ไฟล์ที่ควรมีอย่างน้อย:
 
-Be sure to check [the Wiki-page](https://github.com/zabbix/zabbix-docker/wiki) on common problems and questions. If you still have problems with or questions about the images, please contact us through a [GitHub issue](https://github.com/zabbix/zabbix-docker/issues).
+- `env_vars/.env_srv`
+- `env_vars/.env_web`
+- `env_vars/.env_db_mysql`
+- `env_vars/.MYSQL_USER`
+- `env_vars/.MYSQL_PASSWORD`
+- `env_vars/.MYSQL_ROOT_USER`
+- `env_vars/.MYSQL_ROOT_PASSWORD`
 
-> [!NOTE]
-> Please report here issues and feature requests related to Docker images only. If you have issues or ideas how to improve Zabbix, use official [bug tracker](https://support.zabbix.com/).
+4. ถ้าต้องการแก้ port หรือ image tag ให้แก้ที่ไฟล์ `.env` ก่อนสั่ง run
 
-## Contributing
+## วิธี build และ start project
 
-You are invited to contribute new features, fixes, or updates, large or small; we are always thrilled to receive pull requests, and do our best to process them as fast as we can.
+กรณีต้องการดึง image ตามค่าใน compose และ start ระบบ:
 
-Before you start to code, we recommend discussing your plans through a [GitHub issue](https://github.com/zabbix/zabbix-docker/issues), especially for more ambitious contributions. This gives other contributors a chance to point you in the right direction, give you feedback on your design, and help you find out if someone else is working on the same thing.
+```powershell
+docker compose pull
+docker compose up -d
+```
 
-## License
+กรณีต้องการ build ใหม่จาก Dockerfile ในโปรเจกต์:
 
-Starting from Zabbix version 7.0, all subsequent Zabbix versions will be released under the GNU Affero General Public License version 3 (AGPLv3).
-You can modify the relevant version and propagate such modified version under the terms of the AGPLv3 as published by the Free Software Foundation.
-For additional details, including answers to common questions about the AGPLv3, see the generic FAQ from the [Free Software Foundation](http://www.fsf.org/licenses/gpl-faq.html).
+```powershell
+docker compose build
+docker compose up -d
+```
 
-Zabbix is Open Source Software, however, if you use Zabbix in a commercial context we kindly ask you to support the development of Zabbix by purchasing some level of technical support.
-All previous Zabbix software versions up to 6.4 are released under the GNU General Public License version 2 (GPLv2). The formal terms of the GPLv2 and AGPLv3 can be found at http://www.fsf.org/licenses/.
+หมายเหตุ:
+
+- ถ้าไม่ได้ระบุ profile ระบบจะรันชุดหลักตามค่า default
+- ถ้าต้องการ service เพิ่มเติม เช่น agent, snmptrap หรือ proxy ให้ใช้ profile
+
+ตัวอย่าง:
+
+```powershell
+docker compose --profile full up -d
+```
+
+หรือ
+
+```powershell
+docker compose --profile all up -d
+```
+
+## ตรวจสอบหลัง start
+
+ดูสถานะ container:
+
+```powershell
+docker compose ps
+```
+
+ดู log:
+
+```powershell
+docker compose logs -f
+```
+
+ดู log เฉพาะ service:
+
+```powershell
+docker compose logs -f zabbix-server
+docker compose logs -f zabbix-web-nginx-mysql
+docker compose logs -f mysql-server
+```
+
+## การเข้าใช้งานระบบ
+
+เมื่อ container ขึ้นครบแล้ว ให้เปิดผ่าน browser:
+
+- Zabbix Web Nginx: `http://localhost`
+- ถ้าใช้ Apache image: `http://localhost:8081`
+
+port ที่สำคัญจากค่า default:
+
+- `80` สำหรับ Zabbix Web Nginx
+- `443` สำหรับ Zabbix Web Nginx HTTPS
+- `10051` สำหรับ Zabbix Server
+- `10050` สำหรับ Zabbix Agent
+- `10060` สำหรับ Zabbix Agent2
+- `31999` สำหรับ Agent2 status port
+
+## คำสั่งที่ใช้บ่อย
+
+start:
+
+```powershell
+docker compose up -d
+```
+
+restart:
+
+```powershell
+docker compose restart
+```
+
+stop:
+
+```powershell
+docker compose stop
+```
+
+stop และลบ container/network:
+
+```powershell
+docker compose down
+```
+
+stop และลบ volume ด้วย:
+
+```powershell
+docker compose down -v
+```
+
+## ปัญหาที่พบบ่อย
+
+1. container ไม่ขึ้นเพราะ secret file ไม่ครบ
+
+ให้เช็กไฟล์ใน `env_vars/` โดยเฉพาะ `.MYSQL_USER`, `.MYSQL_PASSWORD`, `.MYSQL_ROOT_USER`, `.MYSQL_ROOT_PASSWORD`
+
+2. เปิดเว็บไม่ได้
+
+ให้เช็กว่าพอร์ต `80` หรือ `8081` ชนกับ service อื่นในเครื่องหรือไม่ และดู `docker compose ps`
+
+3. Zabbix server รอ database นาน
+
+ให้ดู log ของ `mysql-server` และ `server-db-init` ว่าการ initialize database สำเร็จหรือไม่
+
+4. ต้องการล้างข้อมูลเพื่อเริ่มใหม่
+
+ใช้คำสั่งนี้ด้วยความระวัง เพราะจะลบ volume และข้อมูลที่รันอยู่:
+
+```powershell
+docker compose down -v
+```
+
+## Git Workflow เบื้องต้น
+
+ดึงงานล่าสุด:
+
+```powershell
+git pull origin main
+```
+
+ดูสถานะไฟล์:
+
+```powershell
+git status
+```
+
+commit และ push:
+
+```powershell
+git add .
+git commit -m "update readme"
+git push origin main
+```
+
+## หมายเหตุเพิ่มเติม
+
+- โฟลเดอร์ `zbx_env/` ใช้เก็บไฟล์ที่ถูก mount เข้า container
+- ไฟล์ log runtime ไม่ควร commit ขึ้น repo
+- ถ้ามีการปรับค่าระบบเฉพาะเครื่อง ให้จดไว้ใน README หรือแยกเป็นไฟล์ config ของทีมเพื่อให้คนอื่นรันต่อได้ง่าย
