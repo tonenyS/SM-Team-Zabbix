@@ -1,4 +1,4 @@
-# SM-Team-Zibbix
+# SM-Team-Zabbix
 
 โปรเจกต์นี้ใช้ Docker Compose สำหรับรันระบบ Zabbix บนเครื่อง local หรือเครื่อง UAT โดยอิงจากโครงสร้าง `zabbix-docker` และปรับค่าไว้สำหรับงานของทีม
 
